@@ -2,7 +2,22 @@
 <?php
 // Load settings for sidebar
 if (!isset($siteSettings)) {
-    $siteSettings = get_site_settings();
+    try {
+        $pdo = new PDO(
+            sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME),
+            DB_USERNAME,
+            DB_PASSWORD,
+            DB_OPTIONS
+        );
+        $stmt = $pdo->query("SELECT * FROM settings");
+        $settingsData = $stmt->fetchAll();
+        $siteSettings = [];
+        foreach ($settingsData as $row) {
+            $siteSettings[$row['k']] = $row['v'];
+        }
+    } catch (Exception $e) {
+        $siteSettings = [];
+    }
 }
 
 $siteName = $siteSettings['site_name'] ?? 'Chill Drink';

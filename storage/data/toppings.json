@@ -1,0 +1,20 @@
+[
+    {
+        "id": 1,
+        "name": "Tr\u00e2n ch\u00e2u \u0111en",
+        "price": 5000,
+        "status": 1
+    },
+    {
+        "id": 2,
+        "name": "Th\u1ea1ch rau c\u00e2u",
+        "price": 4000,
+        "status": 1
+    },
+    {
+        "id": 3,
+        "name": "Kem cheese",
+        "price": 8000,
+        "status": 1
+    }
+]

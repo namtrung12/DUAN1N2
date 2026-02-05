@@ -43,6 +43,121 @@ function handle_upload(string $field, string $targetDir): ?string
     return $filename;
 }
 
+function parse_selected_items($input): array
+{
+    if (is_array($input)) {
+        return array_values(array_filter(array_map('intval', $input)));
+    }
+    if (is_string($input)) {
+        $parts = array_filter(array_map('trim', explode(',', $input)));
+        return array_values(array_filter(array_map('intval', $parts)));
+    }
+    return [];
+}
+
+function normalize_toppings(array $toppings): array
+{
+    $result = [];
+    foreach ($toppings as $topping) {
+        $result[] = [
+            'id' => $topping['id'] ?? null,
+            'name' => $topping['name'] ?? ($topping['topping_name'] ?? ''),
+            'price' => (int)($topping['price'] ?? 0)
+        ];
+    }
+    return $result;
+}
+
+function build_cart_data(array $cart, array $selectedIds = []): array
+{
+    $cartData = [];
+    $subtotal = 0;
+    $toppingTotal = 0;
+    $selectedLookup = [];
+    foreach ($selectedIds as $id) {
+        $selectedLookup[(int)$id] = true;
+    }
+
+    $items = $cart['items'] ?? [];
+    foreach ($items as $item) {
+        $toppings = normalize_toppings($item['toppings'] ?? []);
+        $itemPrice = (int)($item['unit_price'] ?? 0);
+        $quantity = (int)($item['quantity'] ?? 0);
+        $toppingCost = 0;
+        foreach ($toppings as $topping) {
+            $toppingCost += (int)$topping['price'];
+        }
+        $itemTotal = ($itemPrice + $toppingCost) * $quantity;
+        $item['size'] = $item['size'] ?? ($item['size_name'] ?? '');
+
+        $isSelected = empty($selectedIds) || isset($selectedLookup[(int)$item['id']]);
+        if ($isSelected) {
+            $subtotal += $itemPrice * $quantity;
+            $toppingTotal += $toppingCost * $quantity;
+        }
+
+        $cartData[] = [
+            'cart_item' => $item,
+            'size_info' => ['price' => $itemPrice],
+            'toppings' => $toppings,
+            'item_price' => $itemPrice,
+            'topping_cost' => $toppingCost,
+            'item_total' => $itemTotal,
+            'is_selected' => $isSelected
+        ];
+    }
+
+    return [$cartData, $subtotal, $toppingTotal];
+}
+
+function rank_level(string $rank): int
+{
+    $map = [
+        'new' => 0,
+        'bronze' => 1,
+        'silver' => 2,
+        'gold' => 3,
+        'diamond' => 4
+    ];
+    return $map[$rank] ?? 0;
+}
+
+function find_coupon_by_code(array $coupons, string $code): ?array
+{
+    foreach ($coupons as $coupon) {
+        if (strcasecmp($coupon['code'] ?? '', $code) === 0) {
+            return $coupon;
+        }
+    }
+    return null;
+}
+
+function calculate_coupon_discount(array $coupon, int $amount, string $userRank): int
+{
+    if ((int)($coupon['status'] ?? 0) !== 1) {
+        return 0;
+    }
+    $minOrder = (int)($coupon['min_order'] ?? 0);
+    if ($amount < $minOrder) {
+        return 0;
+    }
+    $requiredRank = $coupon['required_rank'] ?? '';
+    if ($requiredRank !== '' && rank_level($userRank) < rank_level($requiredRank)) {
+        return 0;
+    }
+    $discount = 0;
+    if (($coupon['type'] ?? 'fixed') === 'percent') {
+        $discount = (int)round($amount * ((int)($coupon['value'] ?? 0) / 100));
+        $maxDiscount = (int)($coupon['max_discount'] ?? 0);
+        if ($maxDiscount > 0) {
+            $discount = min($discount, $maxDiscount);
+        }
+    } else {
+        $discount = (int)($coupon['value'] ?? 0);
+    }
+    return max(0, $discount);
+}
+
 $action = $_GET['action'] ?? 'home';
 $store = get_store();
 
@@ -67,7 +182,7 @@ switch ($action) {
                 return (int)$p['category_id'] === $categoryId;
             }));
         }
-        render('products.php', [
+        render('products/index.php', [
             'products' => $products,
             'categories' => $categories,
             'search' => $search,
@@ -87,7 +202,7 @@ switch ($action) {
                 return (int)$p['category_id'] === $categoryId;
             }));
         }
-        render('products.php', [
+        render('products/index.php', [
             'products' => $products,
             'categories' => $categories,
             'search' => '',
@@ -105,26 +220,106 @@ switch ($action) {
         }
         $sizes = $productModel->getSizes($id);
         $toppings = $productModel->getToppings($id);
-        render('product-detail.php', [
+        $reviewModel = new Review($store);
+        $reviews = $reviewModel->getByProductId($id, 1);
+        $reviewCount = count($reviews);
+        $avgRating = 0;
+        if ($reviewCount > 0) {
+            $sumRating = 0;
+            foreach ($reviews as $review) {
+                $sumRating += (int)($review['rating'] ?? 0);
+            }
+            $avgRating = $sumRating / $reviewCount;
+        }
+        render('products/detail.php', [
             'product' => $product,
             'sizes' => $sizes,
-            'toppings' => $toppings
+            'toppings' => $toppings,
+            'reviews' => $reviews,
+            'reviewCount' => $reviewCount,
+            'avgRating' => $avgRating
         ]);
         break;
     case 'cart':
         require_login();
         $cartModel = new Cart($store);
         $cart = $cartModel->getByUserId((int)$_SESSION['user']['id']);
-        render('cart.php', ['cart' => $cart]);
+        $selectedIds = parse_selected_items($_SESSION['selected_items'] ?? []);
+        [$cartData, $subtotal, $toppingTotal] = build_cart_data($cart, $selectedIds);
+
+        $loyaltyModel = new Loyalty($store);
+        $loyaltyData = $loyaltyModel->getByUserId((int)$_SESSION['user']['id']);
+        $userRank = $loyaltyData['level'] ?? 'new';
+
+        $couponModel = new Coupon($store);
+        $coupons = $couponModel->getAll();
+        $discount = 0;
+        if (isset($_SESSION['cart_coupon'])) {
+            $appliedCoupon = find_coupon_by_code($coupons, (string)$_SESSION['cart_coupon']);
+            if ($appliedCoupon) {
+                $discount = calculate_coupon_discount($appliedCoupon, $subtotal + $toppingTotal, $userRank);
+            } else {
+                unset($_SESSION['cart_coupon']);
+            }
+        }
+        $total = max(0, $subtotal + $toppingTotal - $discount);
+
+        $suggestedCoupons = [];
+        foreach ($coupons as $coupon) {
+            if ((int)($coupon['status'] ?? 0) !== 1) {
+                continue;
+            }
+            $coupon['is_redeemed'] = $couponModel->hasUserRedeemed((int)$_SESSION['user']['id'], (int)$coupon['id']);
+            $suggestedCoupons[] = $coupon;
+        }
+
+        $nextCouponInfo = null;
+        $currentRankLevel = rank_level($userRank);
+        if ($currentRankLevel >= 1) {
+            $thresholds = [
+                ['min_order' => 50000, 'code' => 'BRONZE10', 'discount' => '10%', 'rankLevel' => 1],
+                ['min_order' => 100000, 'code' => 'SILVER15', 'discount' => '15%', 'rankLevel' => 2],
+                ['min_order' => 150000, 'code' => 'GOLD20', 'discount' => '20%', 'rankLevel' => 3],
+                ['min_order' => 200000, 'code' => 'DIAMOND25', 'discount' => '25%', 'rankLevel' => 4]
+            ];
+            $currentTotal = $subtotal + $toppingTotal;
+            foreach ($thresholds as $threshold) {
+                if ($threshold['rankLevel'] <= $currentRankLevel && $currentTotal < $threshold['min_order']) {
+                    $nextCouponInfo = [
+                        'needed' => $threshold['min_order'] - $currentTotal,
+                        'min_order' => $threshold['min_order'],
+                        'code' => $threshold['code'],
+                        'discount' => $threshold['discount']
+                    ];
+                    break;
+                }
+            }
+        }
+
+        render('cart/index.php', [
+            'cartData' => $cartData,
+            'subtotal' => $subtotal,
+            'toppingTotal' => $toppingTotal,
+            'discount' => $discount,
+            'total' => $total,
+            'userRank' => $userRank,
+            'nextCouponInfo' => $nextCouponInfo,
+            'suggestedCoupons' => $suggestedCoupons
+        ]);
         break;
 
     case 'cart-add':
         require_login();
         $productModel = new Product($store);
+        $toppingModel = new Topping($store);
         $cartModel = new Cart($store);
         $productId = (int)($_POST['product_id'] ?? 0);
-        $sizeId = (int)($_POST['size_id'] ?? 0);
+        $productSizeId = (int)($_POST['product_size_id'] ?? ($_POST['size_id'] ?? 0));
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
+        $iceLevel = (int)($_POST['ice_level'] ?? 100);
+        $sugarLevel = (int)($_POST['sugar_level'] ?? 100);
+        $note = trim($_POST['note'] ?? '');
+        $toppingIds = array_map('intval', $_POST['toppings'] ?? []);
         $product = $productModel->findById($productId);
         if (!$product) {
             set_flash('errors', ['Product not found.']);
@@ -133,26 +328,45 @@ switch ($action) {
         $sizes = $productModel->getSizes($productId);
         $sizeName = '';
         $unitPrice = 0;
+        $sizeOptionId = 0;
         foreach ($sizes as $size) {
-            if ((int)$size['size_id'] === $sizeId) {
+            if ((int)$size['id'] === $productSizeId) {
                 $sizeName = $size['size_name'];
                 $unitPrice = (int)$size['price'];
+                $sizeOptionId = (int)$size['size_id'];
                 break;
             }
         }
-        if ($sizeId === 0 || $unitPrice === 0) {
+        if ($productSizeId === 0 || $unitPrice === 0) {
             set_flash('errors', ['Please select a size.']);
             redirect('product-detail', ['id' => $productId]);
+        }
+        $allToppings = $toppingModel->getAll();
+        $selectedToppings = [];
+        foreach ($allToppings as $topping) {
+            if (in_array((int)$topping['id'], $toppingIds, true)) {
+                $selectedToppings[] = [
+                    'id' => (int)$topping['id'],
+                    'name' => $topping['name'],
+                    'topping_name' => $topping['name'],
+                    'price' => (int)$topping['price']
+                ];
+            }
         }
         $cartModel->addItem((int)$_SESSION['user']['id'], [
             'product_id' => $productId,
             'product_name' => $product['name'],
             'image' => $product['image'] ?? 'placeholder.svg',
-            'size_id' => $sizeId,
+            'product_size_id' => $productSizeId,
+            'size_id' => $sizeOptionId,
             'size_name' => $sizeName,
+            'size' => $sizeName,
             'quantity' => $quantity,
             'unit_price' => $unitPrice,
-            'toppings' => []
+            'ice_level' => $iceLevel,
+            'sugar_level' => $sugarLevel,
+            'note' => $note,
+            'toppings' => $selectedToppings
         ]);
         set_flash('success', 'Added to cart.');
         redirect('cart');
@@ -161,7 +375,7 @@ switch ($action) {
     case 'cart-update':
         require_login();
         $cartModel = new Cart($store);
-        $itemId = (int)($_POST['item_id'] ?? 0);
+        $itemId = (int)($_POST['item_id'] ?? ($_POST['cart_id'] ?? 0));
         $quantity = max(1, (int)($_POST['quantity'] ?? 1));
         $cartModel->updateQuantity((int)$_SESSION['user']['id'], $itemId, $quantity);
         redirect('cart');
@@ -175,134 +389,750 @@ switch ($action) {
         redirect('cart');
         break;
 
+    case 'cart-remove-multiple':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $ids = array_map('intval', $_POST['cart_ids'] ?? []);
+            $cartModel = new Cart($store);
+            foreach ($ids as $id) {
+                $cartModel->removeItem((int)$_SESSION['user']['id'], $id);
+            }
+        }
+        redirect('cart');
+        break;
+
+    case 'cart-set-selected':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $selected = parse_selected_items($_POST['selected_items'] ?? '');
+            $actionFlag = $_POST['action'] ?? '';
+            if (empty($selected)) {
+                unset($_SESSION['selected_items']);
+            } else {
+                $_SESSION['selected_items'] = $selected;
+            }
+            if ($actionFlag === 'checkout' || $actionFlag === 'checkout_all') {
+                if ($actionFlag === 'checkout_all') {
+                    unset($_SESSION['selected_items']);
+                }
+                redirect('checkout');
+            }
+        }
+        redirect('cart');
+        break;
+
+    case 'cart-apply-coupon':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $code = strtoupper(trim($_POST['coupon_code'] ?? ''));
+            if ($code === '') {
+                set_flash('errors', ['Vui lòng nhập mã giảm giá.']);
+                redirect('cart');
+            }
+            $couponModel = new Coupon($store);
+            $coupons = $couponModel->getAll();
+            $coupon = find_coupon_by_code($coupons, $code);
+            if (!$coupon || (int)($coupon['status'] ?? 0) !== 1) {
+                set_flash('errors', ['Mã giảm giá không hợp lệ.']);
+                redirect('cart');
+            }
+            $cartModel = new Cart($store);
+            $cart = $cartModel->getByUserId((int)$_SESSION['user']['id']);
+            $selectedIds = parse_selected_items($_SESSION['selected_items'] ?? []);
+            [, $subtotal, $toppingTotal] = build_cart_data($cart, $selectedIds);
+            $loyaltyModel = new Loyalty($store);
+            $userRank = ($loyaltyModel->getByUserId((int)$_SESSION['user']['id']))['level'] ?? 'new';
+            $discount = calculate_coupon_discount($coupon, $subtotal + $toppingTotal, $userRank);
+            if ($discount <= 0) {
+                set_flash('errors', ['Mã giảm giá chưa đủ điều kiện áp dụng.']);
+                redirect('cart');
+            }
+            $_SESSION['cart_coupon'] = $coupon['code'];
+            set_flash('success', 'Áp dụng mã giảm giá thành công.');
+        }
+        redirect('cart');
+        break;
+
+    case 'cart-remove-coupon':
+        require_login();
+        unset($_SESSION['cart_coupon']);
+        redirect('cart');
+        break;
+
     case 'checkout':
         require_login();
         $cartModel = new Cart($store);
-        $orderModel = new Order($store);
         $cart = $cartModel->getByUserId((int)$_SESSION['user']['id']);
-        if (empty($cart['items'])) {
-            set_flash('errors', ['Cart is empty.']);
+        $selectedIds = parse_selected_items($_SESSION['selected_items'] ?? []);
+        [$cartData, $subtotal, $toppingTotal] = build_cart_data($cart, $selectedIds);
+        if (!empty($selectedIds)) {
+            $cartData = array_values(array_filter($cartData, function ($row) {
+                return !empty($row['is_selected']);
+            }));
+        }
+        if (empty($cartData)) {
+            set_flash('errors', ['Giỏ hàng của bạn đang trống.']);
             redirect('cart');
         }
-        $subtotal = 0;
-        $items = [];
-        foreach ($cart['items'] as $item) {
-            $lineTotal = (int)$item['unit_price'] * (int)$item['quantity'];
-            $subtotal += $lineTotal;
-            $items[] = [
-                'product_id' => $item['product_id'],
-                'product_name' => $item['product_name'],
-                'image' => $item['image'],
-                'size_name' => $item['size_name'],
-                'quantity' => $item['quantity'],
-                'unit_price' => $item['unit_price'],
-                'total_price' => $lineTotal,
-                'ice_level' => 100,
-                'sugar_level' => 100,
-                'toppings' => $item['toppings'] ?? []
-            ];
+
+        $addressModel = new Address($store);
+        $addresses = $addressModel->getByUserId((int)$_SESSION['user']['id']);
+        $defaultAddress = null;
+        foreach ($addresses as $addr) {
+            if (!empty($addr['is_default'])) {
+                $defaultAddress = $addr;
+                break;
+            }
         }
-        $orderModel->createOrder([
-            'user_id' => (int)$_SESSION['user']['id'],
-            'user_name' => $_SESSION['user']['name'],
-            'status' => 'pending',
-            'created_at' => date('Y-m-d H:i:s'),
-            'items' => $items,
+        if (!$defaultAddress && !empty($addresses)) {
+            $defaultAddress = $addresses[0];
+        }
+
+        $loyaltyModel = new Loyalty($store);
+        $userRank = ($loyaltyModel->getByUserId((int)$_SESSION['user']['id']))['level'] ?? 'new';
+        $couponModel = new Coupon($store);
+        $coupons = $couponModel->getAll();
+        $discount = 0;
+        if (isset($_SESSION['cart_coupon'])) {
+            $appliedCoupon = find_coupon_by_code($coupons, (string)$_SESSION['cart_coupon']);
+            if ($appliedCoupon) {
+                $discount = calculate_coupon_discount($appliedCoupon, $subtotal + $toppingTotal, $userRank);
+            }
+        }
+
+        $shippingFee = 15000;
+        $total = max(0, $subtotal + $toppingTotal + $shippingFee - $discount);
+
+        render('orders/checkout.php', [
+            'addresses' => $addresses,
+            'defaultAddress' => $defaultAddress,
+            'cartData' => $cartData,
             'subtotal' => $subtotal,
-            'shipping_fee' => 15000,
-            'discount' => 0,
-            'total' => $subtotal + 15000
+            'toppingTotal' => $toppingTotal,
+            'shippingFee' => $shippingFee,
+            'discount' => $discount,
+            'total' => $total
         ]);
-        $cartModel->clear((int)$_SESSION['user']['id']);
-        set_flash('success', 'Order created successfully.');
-        redirect('orders');
+        break;
+
+    case 'checkout-process':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $cartModel = new Cart($store);
+            $cart = $cartModel->getByUserId((int)$_SESSION['user']['id']);
+            $selectedIds = parse_selected_items($_SESSION['selected_items'] ?? []);
+            [$cartData, $subtotal, $toppingTotal] = build_cart_data($cart, $selectedIds);
+            if (!empty($selectedIds)) {
+                $cartData = array_values(array_filter($cartData, function ($row) {
+                    return !empty($row['is_selected']);
+                }));
+            }
+            if (empty($cartData)) {
+                set_flash('errors', ['Giỏ hàng của bạn đang trống.']);
+                redirect('cart');
+            }
+
+            $addressId = (int)($_POST['address_id'] ?? 0);
+            $addressModel = new Address($store);
+            $address = $addressModel->findById($addressId);
+            if (!$address || (int)$address['user_id'] !== (int)$_SESSION['user']['id']) {
+                set_flash('errors', ['Vui lòng chọn địa chỉ giao hàng hợp lệ.']);
+                redirect('checkout');
+            }
+
+            $paymentMethod = $_POST['payment_method'] ?? 'cod';
+            $note = trim($_POST['note'] ?? '');
+
+            $loyaltyModel = new Loyalty($store);
+            $userRank = ($loyaltyModel->getByUserId((int)$_SESSION['user']['id']))['level'] ?? 'new';
+            $couponModel = new Coupon($store);
+            $coupons = $couponModel->getAll();
+            $discount = 0;
+            if (isset($_SESSION['cart_coupon'])) {
+                $appliedCoupon = find_coupon_by_code($coupons, (string)$_SESSION['cart_coupon']);
+                if ($appliedCoupon) {
+                    $discount = calculate_coupon_discount($appliedCoupon, $subtotal + $toppingTotal, $userRank);
+                }
+            }
+
+            $shippingFee = 15000;
+            $orderItems = [];
+            foreach ($cartData as $row) {
+                $item = $row['cart_item'];
+                $toppings = $row['toppings'];
+                $toppingCost = (int)$row['topping_cost'];
+                $unitPrice = (int)$row['item_price'] + $toppingCost;
+                $quantity = (int)($item['quantity'] ?? 0);
+                $orderItems[] = [
+                    'product_id' => (int)($item['product_id'] ?? 0),
+                    'product_name' => $item['product_name'] ?? '',
+                    'image' => $item['image'] ?? '',
+                    'size_name' => $item['size'] ?? ($item['size_name'] ?? ''),
+                    'size_id' => (int)($item['size_id'] ?? 0),
+                    'product_size_id' => (int)($item['product_size_id'] ?? 0),
+                    'quantity' => $quantity,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $unitPrice * $quantity,
+                    'ice_level' => (int)($item['ice_level'] ?? 100),
+                    'sugar_level' => (int)($item['sugar_level'] ?? 100),
+                    'toppings' => array_map(function ($t) {
+                        return [
+                            'topping_name' => $t['name'],
+                            'price' => (int)$t['price']
+                        ];
+                    }, $toppings)
+                ];
+            }
+
+            $orderSubtotal = $subtotal + $toppingTotal;
+            $total = max(0, $orderSubtotal + $shippingFee - $discount);
+            $paymentStatus = 'pending';
+
+            if ($paymentMethod === 'wallet') {
+                $walletModel = new Wallet($store);
+                if (!$walletModel->debit((int)$_SESSION['user']['id'], $total, 'Thanh toán đơn hàng')) {
+                    set_flash('errors', ['Số dư ví không đủ để thanh toán.']);
+                    redirect('checkout');
+                }
+                $paymentStatus = 'paid';
+            }
+
+            $orderModel = new Order($store);
+            $order = $orderModel->createOrder([
+                'user_id' => (int)$_SESSION['user']['id'],
+                'user_name' => $_SESSION['user']['name'],
+                'status' => $paymentStatus === 'paid' ? 'processing' : 'pending',
+                'created_at' => date('Y-m-d H:i:s'),
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentStatus,
+                'receiver_name' => $address['receiver_name'],
+                'address_phone' => $address['phone'],
+                'address_detail' => $address['detail'],
+                'ward' => $address['ward'],
+                'district' => $address['district'],
+                'province' => $address['province'],
+                'note' => $note,
+                'items' => $orderItems,
+                'subtotal' => $orderSubtotal,
+                'shipping_fee' => $shippingFee,
+                'discount' => $discount,
+                'total' => $total
+            ]);
+
+            if (!empty($selectedIds)) {
+                foreach ($selectedIds as $id) {
+                    $cartModel->removeItem((int)$_SESSION['user']['id'], (int)$id);
+                }
+            } else {
+                $cartModel->clear((int)$_SESSION['user']['id']);
+            }
+
+            unset($_SESSION['cart_coupon'], $_SESSION['selected_items']);
+            set_flash('success', 'Đặt hàng thành công.');
+            redirect('order-success', ['id' => $order['id']]);
+        }
+        redirect('checkout');
         break;
 
     case 'orders':
         require_login();
         $orderModel = new Order($store);
         $orders = $orderModel->getByUserId((int)$_SESSION['user']['id']);
-        render('orders.php', ['orders' => $orders]);
+        foreach ($orders as &$order) {
+            $order['payment_method'] = $order['payment_method'] ?? 'cod';
+            $order['payment_status'] = $order['payment_status'] ?? 'pending';
+        }
+        render('orders/index.php', ['orders' => $orders]);
         break;
 
     case 'order-detail':
         require_login();
         $orderModel = new Order($store);
-        $orderId = (int)($_GET['order_id'] ?? 0);
+        $orderId = (int)($_GET['id'] ?? ($_GET['order_id'] ?? 0));
         $order = $orderModel->findById($orderId);
         if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
             set_flash('errors', ['Order not found.']);
             redirect('orders');
         }
-        render('order-detail.php', ['order' => $order]);
+        $order = array_merge([
+            'payment_method' => 'cod',
+            'payment_status' => 'pending',
+            'receiver_name' => $_SESSION['user']['name'] ?? '',
+            'address_phone' => $_SESSION['user']['phone'] ?? '',
+            'address_detail' => '',
+            'ward' => '',
+            'district' => '',
+            'province' => '',
+            'note' => ''
+        ], $order);
+        $orderItems = $order['items'] ?? [];
+        render('orders/detail.php', [
+            'order' => $order,
+            'orderItems' => $orderItems
+        ]);
+        break;
+
+    case 'order-success':
+        require_login();
+        $orderId = (int)($_GET['id'] ?? 0);
+        $orderModel = new Order($store);
+        $order = $orderModel->findById($orderId);
+        if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+            redirect('orders');
+        }
+        $order['payment_method'] = $order['payment_method'] ?? 'cod';
+        render('orders/success.php', ['order' => $order]);
+        break;
+
+    case 'order-change-payment':
+        require_login();
+        $orderId = (int)($_GET['id'] ?? 0);
+        $orderModel = new Order($store);
+        $order = $orderModel->findById($orderId);
+        if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+            set_flash('errors', ['Order not found.']);
+            redirect('orders');
+        }
+        $order['payment_method'] = $order['payment_method'] ?? 'cod';
+        $order['payment_status'] = $order['payment_status'] ?? 'pending';
+        $walletModel = new Wallet($store);
+        $walletBalance = $walletModel->getByUserId((int)$_SESSION['user']['id'])['balance'] ?? 0;
+        render('orders/change-payment.php', [
+            'order' => $order,
+            'walletBalance' => $walletBalance
+        ]);
+        break;
+
+    case 'order-update-payment':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = (int)($_POST['order_id'] ?? 0);
+            $paymentMethod = $_POST['payment_method'] ?? 'cod';
+            $orderModel = new Order($store);
+            $order = $orderModel->findById($orderId);
+            if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+                set_flash('errors', ['Order not found.']);
+                redirect('orders');
+            }
+            $payload = [
+                'payment_method' => $paymentMethod,
+                'payment_status' => 'pending'
+            ];
+            if ($paymentMethod === 'wallet') {
+                $walletModel = new Wallet($store);
+                if (!$walletModel->debit((int)$_SESSION['user']['id'], (int)$order['total'], 'Thanh toán đơn hàng')) {
+                    set_flash('errors', ['Số dư ví không đủ để thanh toán.']);
+                    redirect('order-change-payment', ['id' => $orderId]);
+                }
+                $payload['payment_status'] = 'paid';
+                $payload['status'] = 'processing';
+            }
+            $orderModel->update($orderId, $payload);
+            set_flash('success', 'Đã cập nhật phương thức thanh toán.');
+            redirect('order-detail', ['id' => $orderId]);
+        }
+        redirect('orders');
+        break;
+
+    case 'order-cancel':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = (int)($_POST['order_id'] ?? 0);
+            $orderModel = new Order($store);
+            $order = $orderModel->findById($orderId);
+            if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+                set_flash('errors', ['Order not found.']);
+                redirect('orders');
+            }
+            if (($order['payment_status'] ?? 'pending') === 'paid' && ($order['payment_method'] ?? '') === 'wallet') {
+                $walletModel = new Wallet($store);
+                $walletModel->refund((int)$_SESSION['user']['id'], (int)$order['total'], 'Hoàn tiền đơn hàng #' . $orderId);
+            }
+            $orderModel->cancel($orderId, 'Khách hàng hủy đơn');
+            set_flash('success', 'Đã hủy đơn hàng.');
+            redirect('orders');
+        }
+        redirect('orders');
+        break;
+
+    case 'order-confirm-received':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = (int)($_POST['order_id'] ?? 0);
+            $orderModel = new Order($store);
+            $order = $orderModel->findById($orderId);
+            if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+                set_flash('errors', ['Order not found.']);
+                redirect('orders');
+            }
+            $orderModel->updateStatus($orderId, 'completed');
+            set_flash('success', 'Cảm ơn bạn đã xác nhận nhận hàng.');
+            redirect('order-detail', ['id' => $orderId]);
+        }
+        redirect('orders');
+        break;
+
+    case 'order-reorder':
+        require_login();
+        $orderId = (int)($_GET['order_id'] ?? 0);
+        $orderModel = new Order($store);
+        $order = $orderModel->findById($orderId);
+        if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+            set_flash('errors', ['Order not found.']);
+            redirect('orders');
+        }
+        $cartModel = new Cart($store);
+        $productModel = new Product($store);
+        $toppingModel = new Topping($store);
+        $toppings = $toppingModel->getAll();
+        $toppingMap = [];
+        foreach ($toppings as $topping) {
+            $toppingMap[strtolower($topping['name'])] = $topping;
+        }
+        foreach ($order['items'] ?? [] as $item) {
+            $productId = (int)($item['product_id'] ?? 0);
+            $productSizes = $productModel->getSizes($productId);
+            $sizeName = $item['size_name'] ?? '';
+            $productSizeId = 0;
+            $sizeOptionId = 0;
+            foreach ($productSizes as $size) {
+                if (strcasecmp($size['size_name'], $sizeName) === 0) {
+                    $productSizeId = (int)$size['id'];
+                    $sizeOptionId = (int)$size['size_id'];
+                    break;
+                }
+            }
+            if ($productSizeId === 0 && !empty($productSizes)) {
+                $productSizeId = (int)$productSizes[0]['id'];
+                $sizeOptionId = (int)$productSizes[0]['size_id'];
+                $sizeName = $productSizes[0]['size_name'];
+            }
+
+            $selectedToppings = [];
+            foreach ($item['toppings'] ?? [] as $top) {
+                $name = strtolower($top['topping_name'] ?? '');
+                if ($name && isset($toppingMap[$name])) {
+                    $selectedToppings[] = [
+                        'id' => (int)$toppingMap[$name]['id'],
+                        'name' => $toppingMap[$name]['name'],
+                        'topping_name' => $toppingMap[$name]['name'],
+                        'price' => (int)$toppingMap[$name]['price']
+                    ];
+                }
+            }
+
+            $cartModel->addItem((int)$_SESSION['user']['id'], [
+                'product_id' => $productId,
+                'product_name' => $item['product_name'] ?? '',
+                'image' => $item['image'] ?? 'placeholder.svg',
+                'product_size_id' => $productSizeId,
+                'size_id' => $sizeOptionId,
+                'size_name' => $sizeName,
+                'size' => $sizeName,
+                'quantity' => (int)($item['quantity'] ?? 1),
+                'unit_price' => (int)($item['unit_price'] ?? 0),
+                'ice_level' => (int)($item['ice_level'] ?? 100),
+                'sugar_level' => (int)($item['sugar_level'] ?? 100),
+                'note' => '',
+                'toppings' => $selectedToppings
+            ]);
+        }
+        set_flash('success', 'Đã thêm sản phẩm vào giỏ hàng.');
+        redirect('cart');
+        break;
+
+    case 'order-review':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $orderId = (int)($_POST['order_id'] ?? 0);
+            $productId = (int)($_POST['product_id'] ?? 0);
+            $rating = (int)($_POST['rating'] ?? 5);
+            $comment = trim($_POST['comment'] ?? '');
+            $orderModel = new Order($store);
+            $order = $orderModel->findById($orderId);
+            if (!$order || (int)$order['user_id'] !== (int)$_SESSION['user']['id']) {
+                set_flash('errors', ['Order not found.']);
+                redirect('orders');
+            }
+            $reviewModel = new Review($store);
+            if ($reviewModel->hasUserReviewed((int)$_SESSION['user']['id'], $productId, $orderId)) {
+                set_flash('errors', ['Bạn đã đánh giá sản phẩm này.']);
+                redirect('order-detail', ['id' => $orderId]);
+            }
+            $productModel = new Product($store);
+            $product = $productModel->findById($productId);
+            $reviewModel->createReview([
+                'product_id' => $productId,
+                'product_name' => $product['name'] ?? '',
+                'user_id' => (int)$_SESSION['user']['id'],
+                'user_name' => $_SESSION['user']['name'],
+                'user_email' => $_SESSION['user']['email'],
+                'user_avatar' => $_SESSION['user']['avatar'] ?? '',
+                'order_id' => $orderId,
+                'rating' => max(1, min(5, $rating)),
+                'comment' => $comment,
+                'status' => 1
+            ]);
+            set_flash('success', 'Cảm ơn bạn đã đánh giá.');
+            redirect('order-detail', ['id' => $orderId]);
+        }
+        redirect('orders');
         break;
 
     case 'profile':
         require_login();
-        render('profile.php');
+        $userModel = new User($store);
+        $user = $userModel->findById((int)$_SESSION['user']['id']);
+        $addressModel = new Address($store);
+        $addresses = $addressModel->getByUserId((int)$_SESSION['user']['id']);
+        render('profile/index.php', [
+            'user' => $user,
+            'addresses' => $addresses
+        ]);
+        break;
+
+    case 'profile-edit':
+        require_login();
+        $userModel = new User($store);
+        $user = $userModel->findById((int)$_SESSION['user']['id']);
+        render('profile/edit.php', ['user' => $user]);
+        break;
+
+    case 'profile-update':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $name = trim($_POST['name'] ?? '');
+            $phone = trim($_POST['phone'] ?? '');
+            $errors = [];
+            if ($name === '') {
+                $errors['name'] = 'Vui lòng nhập họ tên.';
+            }
+            if ($phone === '') {
+                $errors['phone'] = 'Vui lòng nhập số điện thoại.';
+            }
+            if (!empty($errors)) {
+                $_SESSION['errors'] = $errors;
+                $_SESSION['old'] = $_POST;
+                redirect('profile-edit');
+            }
+            $userModel = new User($store);
+            $updated = $userModel->updateUser((int)$_SESSION['user']['id'], [
+                'name' => $name,
+                'phone' => $phone
+            ]);
+            if ($updated) {
+                $_SESSION['user'] = $updated;
+            }
+            set_flash('success', 'Cập nhật hồ sơ thành công.');
+            redirect('profile');
+        }
+        redirect('profile-edit');
+        break;
+
+    case 'update-avatar':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $fileName = handle_upload('avatar', BASE_PATH . 'assets' . DIRECTORY_SEPARATOR . 'uploads');
+            if (!$fileName) {
+                $_SESSION['errors']['avatar'] = 'Không thể tải ảnh lên.';
+                redirect('profile');
+            }
+            $avatarPath = 'assets/uploads/' . $fileName;
+            $userModel = new User($store);
+            $updated = $userModel->updateUser((int)$_SESSION['user']['id'], ['avatar' => $avatarPath]);
+            if ($updated) {
+                $_SESSION['user'] = $updated;
+            }
+            set_flash('success', 'Cập nhật ảnh đại diện thành công.');
+            redirect('profile');
+        }
+        redirect('profile');
+        break;
+
+    case 'change-password':
+        require_login();
+        render('profile/change-password.php');
+        break;
+
+    case 'update-password':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $current = $_POST['current_password'] ?? '';
+            $newPassword = $_POST['new_password'] ?? '';
+            $confirm = $_POST['confirm_password'] ?? '';
+            $errors = [];
+            $userModel = new User($store);
+            $user = $userModel->findById((int)$_SESSION['user']['id']);
+            if (!$user || !password_verify($current, $user['password'])) {
+                $errors['current_password'] = 'Mật khẩu hiện tại không đúng.';
+            }
+            if ($newPassword === '') {
+                $errors['new_password'] = 'Vui lòng nhập mật khẩu mới.';
+            } elseif (strlen($newPassword) < 6) {
+                $errors['new_password'] = 'Mật khẩu mới phải có ít nhất 6 ký tự.';
+            }
+            if ($confirm !== $newPassword) {
+                $errors['confirm_password'] = 'Xác nhận mật khẩu không khớp.';
+            }
+            if (!empty($errors)) {
+                $_SESSION['errors'] = $errors;
+                redirect('change-password');
+            }
+            $updated = $userModel->updateUser((int)$_SESSION['user']['id'], [
+                'password' => password_hash($newPassword, PASSWORD_DEFAULT)
+            ]);
+            if ($updated) {
+                $_SESSION['user'] = $updated;
+            }
+            set_flash('success', 'Đổi mật khẩu thành công.');
+            redirect('profile');
+        }
+        redirect('change-password');
         break;
 
     case 'wallet':
         require_login();
-        render('wallet.php');
+        $walletModel = new Wallet($store);
+        $wallet = $walletModel->getByUserId((int)$_SESSION['user']['id']);
+        $transactions = $walletModel->getTransactions((int)$_SESSION['user']['id']);
+        render('wallet/index.php', [
+            'wallet' => $wallet,
+            'transactions' => $transactions
+        ]);
+        break;
+
+    case 'wallet-deposit':
+        require_login();
+        $walletModel = new Wallet($store);
+        $wallet = $walletModel->getByUserId((int)$_SESSION['user']['id']);
+        render('wallet/deposit.php', ['wallet' => $wallet]);
+        break;
+
+    case 'wallet-process-deposit':
+        require_login();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $amount = (int)($_POST['amount'] ?? 0);
+            $errors = [];
+            if ($amount < 10000) {
+                $errors[] = 'Số tiền nạp tối thiểu là 10.000đ.';
+            }
+            if ($amount > 50000000) {
+                $errors[] = 'Số tiền nạp tối đa là 50.000.000đ.';
+            }
+            if (!empty($errors)) {
+                set_flash('errors', $errors);
+                redirect('wallet-deposit');
+            }
+            $walletModel = new Wallet($store);
+            $walletModel->deposit((int)$_SESSION['user']['id'], $amount, 'Nạp tiền ví');
+            set_flash('success', 'Nạp tiền thành công.');
+            redirect('wallet');
+        }
+        redirect('wallet-deposit');
         break;
 
     case 'login':
+        render('auth/login.php');
+        break;
+
+    case 'post-login':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $email = trim($_POST['email'] ?? '');
             $password = trim($_POST['password'] ?? '');
+            $errors = [];
+            if ($email === '') {
+                $errors['email'] = 'Vui lòng nhập email.';
+            }
+            if ($password === '') {
+                $errors['password'] = 'Vui lòng nhập mật khẩu.';
+            }
+            if (!empty($errors)) {
+                $_SESSION['errors'] = $errors;
+                $_SESSION['old'] = ['email' => $email];
+                redirect('login');
+            }
             $userModel = new User($store);
             $user = $userModel->findByEmail($email);
             if ($user && password_verify($password, $user['password'])) {
                 if (!(int)$user['is_active']) {
-                    set_flash('errors', ['Account is locked.']);
+                    $_SESSION['errors'] = ['login' => 'Tài khoản đã bị khóa.'];
                     redirect('login');
                 }
                 $_SESSION['user'] = $user;
-                set_flash('success', 'Login success.');
+                set_flash('success', 'Đăng nhập thành công.');
                 redirect('home');
             }
-            set_flash('errors', ['Invalid credentials.']);
+            $_SESSION['errors'] = ['login' => 'Email hoặc mật khẩu không đúng.'];
+            $_SESSION['old'] = ['email' => $email];
             redirect('login');
         }
-        render('login.php');
+        redirect('login');
         break;
 
     case 'register':
+        render('auth/register.php');
+        break;
+
+    case 'post-register':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $name = trim($_POST['name'] ?? '');
             $email = trim($_POST['email'] ?? '');
             $phone = trim($_POST['phone'] ?? '');
             $password = trim($_POST['password'] ?? '');
+            $confirm = trim($_POST['confirm_password'] ?? '');
             $errors = [];
-            if ($name === '' || $email === '' || $password === '') {
-                $errors[] = 'Please fill all required fields.';
+            if ($name === '') {
+                $errors['name'] = 'Vui lòng nhập họ tên.';
             }
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors[] = 'Invalid email.';
+            if ($email === '') {
+                $errors['email'] = 'Vui lòng nhập email.';
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $errors['email'] = 'Email không hợp lệ.';
             }
-            if (empty($errors)) {
-                $userModel = new User($store);
-                $user = $userModel->createUser([
+            if ($phone === '') {
+                $errors['phone'] = 'Vui lòng nhập số điện thoại.';
+            }
+            if ($password === '') {
+                $errors['password'] = 'Vui lòng nhập mật khẩu.';
+            } elseif (strlen($password) < 6) {
+                $errors['password'] = 'Mật khẩu phải có ít nhất 6 ký tự.';
+            }
+            if ($confirm !== $password) {
+                $errors['confirm_password'] = 'Xác nhận mật khẩu không khớp.';
+            }
+            if (!empty($errors)) {
+                $_SESSION['errors'] = $errors;
+                $_SESSION['old'] = [
                     'name' => $name,
                     'email' => $email,
-                    'phone' => $phone,
-                    'role_id' => 1,
-                    'is_active' => 1,
-                    'avatar' => '',
-                    'password' => password_hash($password, PASSWORD_DEFAULT)
-                ]);
-                if ($user) {
-                    $_SESSION['user'] = $user;
-                    set_flash('success', 'Register success.');
-                    redirect('home');
-                }
-                $errors[] = 'Email already exists.';
+                    'phone' => $phone
+                ];
+                redirect('register');
             }
-            set_flash('errors', $errors);
+            $userModel = new User($store);
+            $user = $userModel->createUser([
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'role_id' => 1,
+                'is_active' => 1,
+                'avatar' => '',
+                'password' => password_hash($password, PASSWORD_DEFAULT)
+            ]);
+            if ($user) {
+                $_SESSION['user'] = $user;
+                set_flash('success', 'Đăng ký thành công.');
+                redirect('home');
+            }
+            $_SESSION['errors'] = ['register' => 'Email đã tồn tại.'];
+            $_SESSION['old'] = [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone
+            ];
             redirect('register');
         }
-        render('register.php');
+        redirect('register');
         break;
 
     case 'logout':
@@ -436,11 +1266,26 @@ switch ($action) {
                 'district' => trim($_POST['district'] ?? ''),
                 'ward' => trim($_POST['ward'] ?? ''),
                 'detail' => trim($_POST['detail'] ?? ''),
-                'is_default' => 0
+                'is_default' => isset($_POST['is_default']) ? 1 : 0
             ];
             $errors = [];
-            if ($payload['receiver_name'] === '' || $payload['phone'] === '' || $payload['province'] === '' || $payload['district'] === '' || $payload['ward'] === '' || $payload['detail'] === '') {
-                $errors[] = 'Please fill all required fields.';
+            if ($payload['receiver_name'] === '') {
+                $errors['receiver_name'] = 'Required.';
+            }
+            if ($payload['phone'] === '') {
+                $errors['phone'] = 'Required.';
+            }
+            if ($payload['province'] === '') {
+                $errors['province'] = 'Required.';
+            }
+            if ($payload['district'] === '') {
+                $errors['district'] = 'Required.';
+            }
+            if ($payload['ward'] === '') {
+                $errors['ward'] = 'Required.';
+            }
+            if ($payload['detail'] === '') {
+                $errors['detail'] = 'Required.';
             }
             if (!empty($errors)) {
                 $_SESSION['errors'] = $errors;
@@ -452,7 +1297,10 @@ switch ($action) {
             if (empty($addresses)) {
                 $payload['is_default'] = 1;
             }
-            $addressModel->createAddress($payload);
+            $created = $addressModel->createAddress($payload);
+            if ($payload['is_default']) {
+                $addressModel->setDefault((int)$_SESSION['user']['id'], (int)$created['id']);
+            }
             set_flash('success', 'Address created.');
             redirect('address');
         }
@@ -488,9 +1336,13 @@ switch ($action) {
                 'province' => trim($_POST['province'] ?? ''),
                 'district' => trim($_POST['district'] ?? ''),
                 'ward' => trim($_POST['ward'] ?? ''),
-                'detail' => trim($_POST['detail'] ?? '')
+                'detail' => trim($_POST['detail'] ?? ''),
+                'is_default' => isset($_POST['is_default']) ? 1 : 0
             ];
             $addressModel->updateAddress($id, $payload);
+            if ($payload['is_default']) {
+                $addressModel->setDefault((int)$_SESSION['user']['id'], $id);
+            }
             set_flash('success', 'Address updated.');
             redirect('address');
         }

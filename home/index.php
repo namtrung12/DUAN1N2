@@ -39,15 +39,6 @@
 <body class="bg-background-light">
     <?php include PATH_VIEW . 'layouts/header.php'; ?>
     
-    <?php if (isset($_SESSION['success'])): ?>
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        <div class="p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between">
-            <span><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></span>
-            <button onclick="this.parentElement.parentElement.remove()" class="text-green-700 hover:text-green-900">✕</button>
-        </div>
-    </div>
-    <?php unset($_SESSION['success']); endif; ?>
-    
     <?php include PATH_VIEW . 'layouts/hero.php'; ?>
 
     <!-- Featured Categories -->

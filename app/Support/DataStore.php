@@ -209,6 +209,15 @@ class DataStore
                     'user_name' => 'Customer',
                     'status' => 'pending',
                     'created_at' => date('Y-m-d H:i:s', strtotime('-1 day')),
+                    'payment_method' => 'cod',
+                    'payment_status' => 'pending',
+                    'receiver_name' => 'Customer',
+                    'address_phone' => '0911111111',
+                    'address_detail' => '123 ABC Street',
+                    'ward' => 'Ward 1',
+                    'district' => 'District 1',
+                    'province' => 'HCMC',
+                    'note' => '',
                     'items' => [
                         [
                             'product_id' => 1,
@@ -236,6 +245,15 @@ class DataStore
                     'user_name' => 'Customer',
                     'status' => 'completed',
                     'created_at' => date('Y-m-d H:i:s', strtotime('-3 days')),
+                    'payment_method' => 'cod',
+                    'payment_status' => 'paid',
+                    'receiver_name' => 'Customer',
+                    'address_phone' => '0911111111',
+                    'address_detail' => '123 ABC Street',
+                    'ward' => 'Ward 1',
+                    'district' => 'District 1',
+                    'province' => 'HCMC',
+                    'note' => '',
                     'items' => [
                         [
                             'product_id' => 3,
@@ -331,12 +349,17 @@ class DataStore
                             'product_id' => 1,
                             'product_name' => 'Tra sua tran chau',
                             'image' => 'placeholder.svg',
+                            'product_size_id' => 2,
                             'size_id' => 2,
                             'size_name' => 'M',
+                            'size' => 'M',
                             'quantity' => 1,
                             'unit_price' => 30000,
+                            'ice_level' => 100,
+                            'sugar_level' => 100,
+                            'note' => '',
                             'toppings' => [
-                                ['topping_name' => 'Trân châu đen', 'price' => 5000]
+                                ['id' => 1, 'name' => 'Trân châu đen', 'topping_name' => 'Trân châu đen', 'price' => 5000]
                             ]
                         ]
                     ]
@@ -354,6 +377,23 @@ class DataStore
                     'comment' => 'Rat ngon!',
                     'status' => 1,
                     'created_at' => date('Y-m-d H:i:s', strtotime('-4 days'))
+                ]
+            ],
+            'wallets' => [
+                [
+                    'id' => 1,
+                    'user_id' => 2,
+                    'balance' => 500000
+                ]
+            ],
+            'wallet_transactions' => [
+                [
+                    'id' => 1,
+                    'user_id' => 2,
+                    'type' => 'deposit',
+                    'amount' => 500000,
+                    'description' => 'Nạp tiền ban đầu',
+                    'created_at' => date('Y-m-d H:i:s', strtotime('-10 days'))
                 ]
             ],
             'coupon_redemptions' => []

@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .required-star { color: #ef4444; }
-        .error-text { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -28,7 +26,13 @@
                 </div>
             </div>
 
-            <?php $errors = $_SESSION['errors'] ?? []; unset($_SESSION['errors']); ?>
+            <?php if (isset($_SESSION['errors'])): ?>
+            <div class="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+                <?php foreach ($_SESSION['errors'] as $error): ?>
+                <p><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+                <?php endforeach; ?>
+            </div>
+            <?php unset($_SESSION['errors']); endif; ?>
 
             <form action="<?= BASE_URL ?>?action=admin-product-update" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm p-8">
                 <input type="hidden" name="id" value="<?= $product['id'] ?>"/>
@@ -60,27 +64,21 @@
                                 </label>
                             </div>
                         </div>
-                        <?php if (isset($errors['image'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['image'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Tên sản phẩm -->
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-900 mb-2">Tên sản phẩm <span class="required-star">*</span></label>
-                        <input type="text" name="name" required maxlength="255"
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Tên sản phẩm *</label>
+                        <input type="text" name="name" required
                                value="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="Nhập tên sản phẩm (tối đa 255 ký tự)"/>
-                        <?php if (isset($errors['name'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['name'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
+                               placeholder="Nhập tên sản phẩm"/>
                     </div>
 
                     <!-- Danh mục -->
                     <div>
-                        <label class="block text-sm font-semibold text-slate-900 mb-2">Danh mục <span class="required-star">*</span></label>
-                        <select name="category_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Danh mục</label>
+                        <select name="category_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <option value="">-- Chọn danh mục --</option>
                             <?php foreach ($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= $product['category_id'] == $cat['id'] ? 'selected' : '' ?>>
@@ -88,9 +86,6 @@
                             </option>
                             <?php endforeach; ?>
                         </select>
-                        <?php if (isset($errors['category'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['category'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Trạng thái -->
@@ -106,14 +101,14 @@
                     <!-- Mô tả -->
                     <div class="md:col-span-2">
                         <label class="block text-sm font-semibold text-slate-900 mb-2">Mô tả</label>
-                        <textarea name="description" rows="4" maxlength="1000"
+                        <textarea name="description" rows="4"
                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                  placeholder="Nhập mô tả sản phẩm (tối đa 1000 ký tự)"><?= htmlspecialchars($product['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                  placeholder="Nhập mô tả sản phẩm"><?= htmlspecialchars($product['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
 
                     <!-- Sizes -->
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-900 mb-4">Giá theo Size <span class="required-star">*</span></label>
+                        <label class="block text-sm font-semibold text-slate-900 mb-4">Giá theo Size</label>
                         <div class="space-y-3">
                             <?php 
                             $allSizes = $productModel->getAllSizes();
@@ -142,16 +137,12 @@
                                            id="price_<?= $sizeOption['id'] ?>"
                                            value="<?= $currentPrice ?>"
                                            placeholder="Nhập giá (VNĐ)"
-                                           min="0" max="99999999"
                                            <?= empty($currentPrice) ? 'disabled' : '' ?>
                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"/>
                                 </div>
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <?php if (isset($errors['sizes'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['sizes'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Toppings -->
@@ -204,12 +195,14 @@
         function previewImage(event) {
             const file = event.target.files[0];
             if (file) {
+                // Check file size (5MB = 5 * 1024 * 1024 bytes)
                 if (file.size > 5 * 1024 * 1024) {
                     alert('Kích thước file quá lớn! Vui lòng chọn file nhỏ hơn 5MB.');
                     event.target.value = '';
                     return;
                 }
 
+                // Check file type
                 const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
                 if (!allowedTypes.includes(file.type)) {
                     alert('Định dạng file không hợp lệ! Vui lòng chọn file PNG, JPG hoặc WEBP.');
@@ -217,6 +210,7 @@
                     return;
                 }
 
+                // Preview image
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     document.getElementById('imagePreview').src = e.target.result;

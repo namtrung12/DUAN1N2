@@ -38,13 +38,25 @@ class Cart extends BaseModel
 
     public function addItem(int $userId, array $item): void
     {
+        $item['toppings'] = $item['toppings'] ?? [];
+        $item['ice_level'] = $item['ice_level'] ?? 100;
+        $item['sugar_level'] = $item['sugar_level'] ?? 100;
+        $item['note'] = $item['note'] ?? '';
+        $item['size'] = $item['size'] ?? ($item['size_name'] ?? '');
+
         $all = $this->all();
         $found = false;
         foreach ($all as $cIndex => $cart) {
             if ((int)$cart['user_id'] === $userId) {
                 foreach ($cart['items'] as $iIndex => $existing) {
+                    $existingSizeKey = (int)($existing['product_size_id'] ?? $existing['size_id'] ?? 0);
+                    $incomingSizeKey = (int)($item['product_size_id'] ?? $item['size_id'] ?? 0);
                     if ((int)$existing['product_id'] === (int)$item['product_id']
-                        && (int)$existing['size_id'] === (int)$item['size_id']) {
+                        && $existingSizeKey === $incomingSizeKey
+                        && (int)($existing['ice_level'] ?? 100) === (int)$item['ice_level']
+                        && (int)($existing['sugar_level'] ?? 100) === (int)$item['sugar_level']
+                        && (string)($existing['note'] ?? '') === (string)$item['note']
+                        && $this->sameToppings($existing['toppings'] ?? [], $item['toppings'] ?? [])) {
                         $cart['items'][$iIndex]['quantity'] += (int)$item['quantity'];
                         $found = true;
                         break;
@@ -124,5 +136,22 @@ class Cart extends BaseModel
             $maxId = max($maxId, (int)($item['id'] ?? 0));
         }
         return $maxId + 1;
+    }
+
+    private function sameToppings(array $first, array $second): bool
+    {
+        return $this->toppingIds($first) === $this->toppingIds($second);
+    }
+
+    private function toppingIds(array $toppings): array
+    {
+        $ids = [];
+        foreach ($toppings as $topping) {
+            if (isset($topping['id'])) {
+                $ids[] = (int)$topping['id'];
+            }
+        }
+        sort($ids);
+        return $ids;
     }
 }

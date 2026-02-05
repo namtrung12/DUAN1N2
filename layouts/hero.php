@@ -1,12 +1,18 @@
 <?php
-// Load banners from JSON settings
-$settings = get_site_settings();
-$banners = [];
-for ($i = 1; $i <= 3; $i++) {
-    $key = 'banner_' . $i;
-    if (!empty($settings[$key])) {
-        $banners[] = $settings[$key];
+// Load banners từ settings
+try {
+    $pdo = new PDO("mysql:host=localhost;dbname=du_an1;charset=utf8mb4", "root", "");
+    $stmt = $pdo->query("SELECT k, v FROM settings WHERE k LIKE 'banner_%' ORDER BY k");
+    $bannerSettings = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    
+    $banners = [];
+    foreach ($bannerSettings as $key => $value) {
+        if (!empty($value) && trim($value) !== '') {
+            $banners[] = $value;
+        }
     }
+} catch (Exception $e) {
+    $banners = [];
 }
 ?>
 

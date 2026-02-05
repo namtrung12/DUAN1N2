@@ -24,15 +24,6 @@
                 <p class="text-slate-600">Chào mừng trở lại, Admin!</p>
             </div>
 
-            <?php if (isset($_SESSION['success'])): ?>
-            <div class="mb-6 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between">
-                <span><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></span>
-                <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            <?php unset($_SESSION['success']); endif; ?>
-
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <!-- Total Orders -->

@@ -135,6 +135,7 @@ $siteLogo = $siteSettings['site_logo'] ?? '';
                 $headerUserModel = new User();
                 $headerUser = $headerUserModel->findById($_SESSION['user']['id']);
                 $currentAvatar = $headerUser['avatar'] ?? $_SESSION['user']['avatar'] ?? '';
+                $roleId = (int)($_SESSION['user']['role_id'] ?? 1);
                 // Cập nhật session nếu khác
                 if ($currentAvatar !== ($_SESSION['user']['avatar'] ?? '')) {
                     $_SESSION['user']['avatar'] = $currentAvatar;
@@ -175,7 +176,7 @@ $siteLogo = $siteSettings['site_logo'] ?? '';
                                 <span class="material-symbols-outlined text-slate-600">account_balance_wallet</span>
                                 <span class="text-slate-700">Ví của tôi</span>
                             </a>
-                            <?php if ($_SESSION['user']['role_id'] == 2): ?>
+                            <?php if ($roleId === 2): ?>
                             <a href="<?= BASE_URL ?>?action=admin" class="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors">
                                 <span class="material-symbols-outlined text-slate-600">admin_panel_settings</span>
                                 <span class="text-slate-700">Quản trị</span>

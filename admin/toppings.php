@@ -109,38 +109,20 @@
                 </div>
 
                 <!-- Pagination -->
-                <?php if ($totalPages > 1): ?>
-                <?php
-                $startItem = ($page - 1) * $perPage + 1;
-                $endItem = min($page * $perPage, $totalToppings);
-                ?>
                 <div class="p-6 border-t border-gray-200 flex items-center justify-between">
-                    <p class="text-sm text-slate-600">Hiển thị <?= $startItem ?>-<?= $endItem ?> trên <?= $totalToppings ?> kết quả</p>
+                    <p class="text-sm text-slate-600">Hiển thị 1-<?= count($toppings) ?> trên <?= count($toppings) ?> kết quả</p>
                     <div class="flex items-center gap-2">
-                        <?php if ($page > 1): ?>
-                        <a href="<?= BASE_URL ?>?action=admin-toppings&page=<?= $page - 1 ?>" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                             <span class="material-symbols-outlined text-slate-600">chevron_left</span>
-                        </a>
-                        <?php endif; ?>
-                        
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <?php if ($i == $page): ?>
-                            <span class="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-600 text-white font-semibold"><?= $i ?></span>
-                            <?php elseif ($i == 1 || $i == $totalPages || abs($i - $page) <= 2): ?>
-                            <a href="<?= BASE_URL ?>?action=admin-toppings&page=<?= $i ?>" class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-slate-600 font-semibold transition-colors"><?= $i ?></a>
-                            <?php elseif (abs($i - $page) == 3): ?>
-                            <span class="px-2 text-slate-400">...</span>
-                            <?php endif; ?>
-                        <?php endfor; ?>
-                        
-                        <?php if ($page < $totalPages): ?>
-                        <a href="<?= BASE_URL ?>?action=admin-toppings&page=<?= $page + 1 ?>" class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                        </button>
+                        <button class="w-10 h-10 flex items-center justify-center rounded-lg bg-blue-600 text-white font-semibold">1</button>
+                        <button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-slate-600 font-semibold transition-colors">2</button>
+                        <button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 text-slate-600 font-semibold transition-colors">3</button>
+                        <button class="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                             <span class="material-symbols-outlined text-slate-600">chevron_right</span>
-                        </a>
-                        <?php endif; ?>
+                        </button>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         </main>
     </div>

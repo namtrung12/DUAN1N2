@@ -90,14 +90,10 @@ ini_set('display_errors', 1);
                         </div>
 
                         <!-- Bulk Actions -->
-                        <div id="bulkActions" class="hidden flex gap-2">
+                        <div id="bulkActions" class="hidden">
                             <button onclick="lockSelectedUsers()" class="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                                 <span class="material-symbols-outlined text-xl">lock</span>
-                                <span>Khóa</span>
-                            </button>
-                            <button onclick="unlockSelectedUsers()" class="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                                <span class="material-symbols-outlined text-xl">lock_open</span>
-                                <span>Mở khóa</span>
+                                <span>Khóa tài khoản</span>
                             </button>
                         </div>
                     </div>
@@ -188,47 +184,25 @@ ini_set('display_errors', 1);
                 </div>
 
                 <!-- Pagination -->
-                <?php if ($totalPages > 1): ?>
-                <?php
-                $startItem = ($page - 1) * $perPage + 1;
-                $endItem = min($page * $perPage, $totalUsers);
-                ?>
                 <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
                     <div class="text-sm text-gray-600">
-                        Hiển thị <?= $startItem ?>-<?= $endItem ?> của <?= $totalUsers ?> người dùng
+                        Showing 1-<?= count($users) ?> of <?= count($users) ?>
                     </div>
                     <div class="flex items-center gap-2">
-                        <?php if ($page > 1): ?>
-                        <a href="<?= BASE_URL ?>?action=admin-users&page=<?= $page - 1 ?>" 
-                           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                            Trước
-                        </a>
-                        <?php endif; ?>
-                        
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <?php if ($i == $page): ?>
-                            <span class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg">
-                                <?= $i ?>
-                            </span>
-                            <?php elseif ($i == 1 || $i == $totalPages || abs($i - $page) <= 2): ?>
-                            <a href="<?= BASE_URL ?>?action=admin-users&page=<?= $i ?>" 
-                               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                                <?= $i ?>
-                            </a>
-                            <?php elseif (abs($i - $page) == 3): ?>
-                            <span class="px-2 text-gray-500">...</span>
-                            <?php endif; ?>
-                        <?php endfor; ?>
-                        
-                        <?php if ($page < $totalPages): ?>
-                        <a href="<?= BASE_URL ?>?action=admin-users&page=<?= $page + 1 ?>" 
-                           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
-                            Sau
-                        </a>
-                        <?php endif; ?>
+                        <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Previous
+                        </button>
+                        <button class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-lg">
+                            1
+                        </button>
+                        <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            2
+                        </button>
+                        <button class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                            Next
+                        </button>
                     </div>
                 </div>
-                <?php endif; ?>
             </div>
         </main>
     </div>
@@ -330,40 +304,11 @@ ini_set('display_errors', 1);
                 return;
             }
 
-            if (confirm(`Bạn có chắc muốn khóa ${userIds.length} tài khoản đã chọn?\n\nLưu ý: Bạn không thể khóa tài khoản của chính mình.`)) {
+            if (confirm(`Bạn có chắc muốn khóa ${userIds.length} tài khoản đã chọn?`)) {
                 // Create form and submit
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = '<?= BASE_URL ?>?action=admin-users-lock-multiple';
-                
-                userIds.forEach(id => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = 'user_ids[]';
-                    input.value = id;
-                    form.appendChild(input);
-                });
-                
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
-
-        // Unlock selected users
-        function unlockSelectedUsers() {
-            const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
-            const userIds = Array.from(checkedBoxes).map(cb => cb.value);
-            
-            if (userIds.length === 0) {
-                alert('Vui lòng chọn ít nhất một người dùng');
-                return;
-            }
-
-            if (confirm(`Bạn có chắc muốn mở khóa ${userIds.length} tài khoản đã chọn?`)) {
-                // Create form and submit
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '<?= BASE_URL ?>?action=admin-users-unlock-multiple';
                 
                 userIds.forEach(id => {
                     const input = document.createElement('input');

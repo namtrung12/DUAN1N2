@@ -9,8 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <style>
         body { font-family: 'Poppins', sans-serif; }
-        .required-star { color: #ef4444; }
-        .error-text { color: #ef4444; font-size: 0.875rem; margin-top: 0.25rem; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -27,22 +25,24 @@
                 </div>
             </div>
 
-            <?php 
-            $errors = $_SESSION['errors'] ?? []; 
-            unset($_SESSION['errors']); 
-            $tempImage = $_SESSION['old']['temp_image'] ?? '';
-            ?>
+            <?php if (isset($_SESSION['errors'])): ?>
+            <div class="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+                <?php foreach ($_SESSION['errors'] as $error): ?>
+                <p><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></p>
+                <?php endforeach; ?>
+            </div>
+            <?php unset($_SESSION['errors']); endif; ?>
 
             <form action="<?= BASE_URL ?>?action=admin-product-store" method="POST" enctype="multipart/form-data" class="bg-white rounded-2xl shadow-sm p-8">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Hình ảnh -->
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-900 mb-2">Hình ảnh sản phẩm <span class="required-star">*</span></label>
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Hình ảnh sản phẩm *</label>
                         <div class="flex items-start gap-6">
                             <div class="flex-shrink-0">
                                 <img id="imagePreview" 
-                                     src="<?= !empty($tempImage) ? BASE_URL . 'assets/uploads/' . $tempImage : 'https://via.placeholder.com/128x128?text=No+Image' ?>" 
+                                     src="https://via.placeholder.com/128x128?text=No+Image" 
                                      alt="Preview"
                                      class="w-32 h-32 object-cover rounded-lg border-2 border-gray-200"/>
                             </div>
@@ -54,39 +54,30 @@
                                         <p class="text-sm text-gray-600"><span class="font-semibold">Click để upload</span> hoặc kéo thả</p>
                                         <p class="text-xs text-gray-500 mt-1">PNG, JPG, WEBP (MAX. 5MB)</p>
                                     </div>
-                                    <input type="file" name="image" accept="image/*" class="hidden" onchange="previewImage(event)"/>
+                                    <input type="file" name="image" accept="image/*" required class="hidden" onchange="previewImage(event)"/>
                                 </label>
                             </div>
                         </div>
-                        <?php if (isset($errors['image'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['image'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Tên sản phẩm -->
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-900 mb-2">Tên sản phẩm <span class="required-star">*</span></label>
-                        <input type="text" name="name" required maxlength="255"
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Tên sản phẩm *</label>
+                        <input type="text" name="name" required
                                value="<?= htmlspecialchars($_SESSION['old']['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                               placeholder="Nhập tên sản phẩm (tối đa 255 ký tự)"/>
-                        <?php if (isset($errors['name'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['name'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
+                               placeholder="Nhập tên sản phẩm"/>
                     </div>
 
                     <!-- Danh mục -->
                     <div>
-                        <label class="block text-sm font-semibold text-slate-900 mb-2">Danh mục <span class="required-star">*</span></label>
-                        <select name="category_id" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-sm font-semibold text-slate-900 mb-2">Danh mục</label>
+                        <select name="category_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">-- Chọn danh mục --</option>
                             <?php foreach ($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>"><?= htmlspecialchars($cat['name'], ENT_QUOTES, 'UTF-8') ?></option>
                             <?php endforeach; ?>
                         </select>
-                        <?php if (isset($errors['category'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['category'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Trạng thái -->
@@ -101,14 +92,14 @@
                     <!-- Mô tả -->
                     <div class="md:col-span-2">
                         <label class="block text-sm font-semibold text-slate-900 mb-2">Mô tả</label>
-                        <textarea name="description" rows="4" maxlength="1000"
+                        <textarea name="description" rows="4"
                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  placeholder="Nhập mô tả sản phẩm (tối đa 1000 ký tự)"><?= htmlspecialchars($_SESSION['old']['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+                                  placeholder="Nhập mô tả sản phẩm"><?= htmlspecialchars($_SESSION['old']['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
                     </div>
 
                     <!-- Kích cỡ & Giá -->
                     <div class="md:col-span-2">
-                        <label class="block text-sm font-semibold text-slate-900 mb-3">Kích cỡ & Giá <span class="required-star">*</span></label>
+                        <label class="block text-sm font-semibold text-slate-900 mb-3">Kích cỡ & Giá *</label>
                         <div class="space-y-3">
                             <?php foreach ($allSizes as $size): ?>
                             <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
@@ -117,7 +108,7 @@
                                     <span class="font-medium"><?= htmlspecialchars($size['name'], ENT_QUOTES, 'UTF-8') ?></span>
                                 </label>
                                 <div class="flex items-center gap-2">
-                                    <input type="number" name="prices[<?= $size['id'] ?>]" min="0" max="99999999" step="1000"
+                                    <input type="number" name="prices[<?= $size['id'] ?>]" min="0" step="1000"
                                            class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                            placeholder="Giá"/>
                                     <span class="text-sm text-gray-600">đ</span>
@@ -125,9 +116,6 @@
                             </div>
                             <?php endforeach; ?>
                         </div>
-                        <?php if (isset($errors['sizes'])): ?>
-                        <p class="error-text"><?= htmlspecialchars($errors['sizes'], ENT_QUOTES, 'UTF-8') ?></p>
-                        <?php endif; ?>
                     </div>
 
                     <!-- Topping -->

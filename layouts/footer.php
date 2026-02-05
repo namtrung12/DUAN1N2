@@ -1,17 +1,25 @@
 <?php
-// Load settings from JSON (key-value format)
+// Load settings từ database (key-value format)
 $siteName = 'Chill Drink';
 $siteEmail = 'support@chilldrink.vn';
 $sitePhone = '1900 xxxx';
 $siteAddress = 'Hà Nội, Việt Nam';
 $siteLogo = null;
-$settingsData = get_site_settings();
 
-$siteName = $settingsData['site_name'] ?? $siteName;
-$siteEmail = $settingsData['contact_email'] ?? $siteEmail;
-$sitePhone = $settingsData['contact_phone'] ?? $sitePhone;
-$siteAddress = $settingsData['site_address'] ?? $siteAddress;
-$siteLogo = $settingsData['site_logo'] ?? $siteLogo;
+try {
+    $pdo = new PDO("mysql:host=localhost;dbname=du_an1;charset=utf8mb4", "root", "");
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $stmt = $pdo->query("SELECT k, v FROM settings");
+    $settingsData = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+    
+    $siteName = $settingsData['site_name'] ?? $siteName;
+    $siteEmail = $settingsData['contact_email'] ?? $siteEmail;
+    $sitePhone = $settingsData['contact_phone'] ?? $sitePhone;
+    $siteAddress = $settingsData['site_address'] ?? $siteAddress;
+    $siteLogo = $settingsData['site_logo'] ?? $siteLogo;
+} catch (Exception $e) {
+    // Sử dụng giá trị mặc định nếu có lỗi
+}
 ?>
 
 <footer class="bg-slate-900 text-white py-12 mt-16">
