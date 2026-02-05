@@ -22,7 +22,7 @@
             <div class="mb-8">
                 <div class="flex items-center gap-3 mb-4">
                     <a href="<?= BASE_URL ?>?action=admin-products" class="text-slate-600 hover:text-slate-900">
-                        <spanphẩm class="material-symbols-outlined">arrow_back</</h1>
+                        <span class="material-symbols-outlined">arrow_back</span>
                     </a>
                     <h1 class="text-3xl font-bold text-slate-900">Chỉnh sửa Sản phẩm</h1>
                 </div>

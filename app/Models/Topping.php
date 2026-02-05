@@ -1,0 +1,53 @@
+<?php
+
+class Topping extends BaseModel
+{
+    protected string $collection = 'toppings';
+
+    public function __construct(?DataStore $store = null)
+    {
+        parent::__construct($store);
+    }
+
+    public function getAll(): array
+    {
+        return $this->all();
+    }
+
+    public function createTopping(string $name, int $price, int $status): array
+    {
+        return $this->create([
+            'name' => $name,
+            'price' => $price,
+            'status' => $status
+        ]);
+    }
+
+    public function updateTopping(int $id, string $name, int $price, int $status): ?array
+    {
+        return $this->update($id, [
+            'name' => $name,
+            'price' => $price,
+            'status' => $status
+        ]);
+    }
+
+    public function deleteMany(array $ids): int
+    {
+        $data = $this->all();
+        $ids = array_map('intval', $ids);
+        $filtered = [];
+        $count = 0;
+        foreach ($data as $item) {
+            if (in_array((int)$item['id'], $ids, true)) {
+                $count++;
+                continue;
+            }
+            $filtered[] = $item;
+        }
+        if ($count > 0) {
+            $this->saveAll($filtered);
+        }
+        return $count;
+    }
+}

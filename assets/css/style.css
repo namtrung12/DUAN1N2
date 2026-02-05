@@ -1,0 +1,13 @@
+/* Base styles for Chill Drink */
+:root {
+  --primary: #47b4eb;
+  --text: #0f172a;
+}
+
+body {
+  color: var(--text);
+}
+
+.no-select {
+  user-select: none;
+}

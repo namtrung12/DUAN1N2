@@ -1,0 +1,22 @@
+[
+    {
+        "id": 1,
+        "user_id": 2,
+        "type": "order_delivering",
+        "title": "Don hang dang giao",
+        "message": "Don hang #0001 dang duoc giao.",
+        "is_read": 0,
+        "order_id": 1,
+        "created_at": "2026-02-05 15:42:28"
+    },
+    {
+        "id": 2,
+        "user_id": 2,
+        "type": "order_cancelled",
+        "title": "Don hang bi huy",
+        "message": "Don hang #0003 da bi huy.",
+        "is_read": 1,
+        "order_id": null,
+        "created_at": "2026-02-04 17:42:28"
+    }
+]

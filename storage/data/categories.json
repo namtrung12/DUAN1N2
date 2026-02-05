@@ -1,0 +1,27 @@
+[
+    {
+        "id": 1,
+        "name": "Tr\u00e0",
+        "slug": "tra"
+    },
+    {
+        "id": 2,
+        "name": "Tr\u00e0 s\u1eefa",
+        "slug": "tra-sua"
+    },
+    {
+        "id": 3,
+        "name": "C\u00e0 ph\u00ea",
+        "slug": "ca-phe"
+    },
+    {
+        "id": 4,
+        "name": "Sinh t\u1ed1",
+        "slug": "sinh-to"
+    },
+    {
+        "id": 5,
+        "name": "N\u01b0\u1edbc \u00e9p",
+        "slug": "nuoc-ep"
+    }
+]

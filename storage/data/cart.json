@@ -1,0 +1,27 @@
+[
+    {
+        "user_id": 2,
+        "items": [
+            {
+                "id": 1,
+                "product_id": 1,
+                "product_name": "Tra sua tran chau",
+                "image": "placeholder.svg",
+                "size_id": 2,
+                "size_name": "M",
+                "quantity": 1,
+                "unit_price": 30000,
+                "toppings": [
+                    {
+                        "topping_name": "Tr\u00e2n ch\u00e2u \u0111en",
+                        "price": 5000
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "user_id": 1,
+        "items": []
+    }
+]
