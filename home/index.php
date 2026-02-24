@@ -176,9 +176,9 @@
     </section>
 
     <!-- Newsletter -->
-    <section class="py-8 bg-gray-50">
+    <section class="py-8 bg-gray-50" id="newsletter-section">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="max-w-4xl mx-auto">
+            <div class="max-w-4xl mx-auto bg-gradient-to-r from-primary/10 to-cyan-100 rounded-2xl p-8">
                 <div class="flex flex-col md:flex-row items-center justify-between gap-6">
                     <div class="flex-1">
                         <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-1">Nhận ưu đãi đặc quyền!</h2>
