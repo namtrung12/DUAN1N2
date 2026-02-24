@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Chill Drink - Hương Vị Bùng Tỉnh Ngay Mỗi Ngày</title>
+    <title>Chill Drink - Hương Vị Bùng Nổ Mỗi Ngày</title>
+    <meta name="description" content="Thưởng thức đồ uống tươi ngon, giao hàng nhanh chóng. Tích điểm đổi quà hấp dẫn!">
+    <meta name="keywords" content="trà sữa, cà phê, sinh tố, nước ép, đồ uống">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
     <link href="<?= BASE_URL ?>assets/css/style.css" rel="stylesheet"/>
