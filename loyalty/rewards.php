@@ -11,12 +11,12 @@
 <body class="bg-gray-50">
     <?php require_once PATH_VIEW . 'layouts/header.php'; ?>
 
-    <main class="container mx-auto px-4 py-10">
+    <main class="container mx-auto px-4 py-10" role="main">
         <div class="max-w-6xl mx-auto">
             <div class="flex items-center justify-between mb-8">
                 <div>
                     <h1 class="text-3xl font-bold text-slate-900 mb-2">Đổi Mã giảm giá</h1>
-                    <p class="text-slate-600">Sử dụng điểm tích lũy để đổi mã giảm giá</p>
+                    <p class="text-slate-600">Sử dụng điểm tích lũy để đổi mã giảm giá hấp dẫn</p>
                 </div>
                 <div class="text-right">
                     <p class="text-sm text-slate-600">Điểm của bạn</p>
