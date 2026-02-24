@@ -129,7 +129,10 @@
     <!-- Sale Products -->
     <section class="py-8 bg-white">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-5">Sản phẩm bán chạy</h2>
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-900">Sản phẩm bán chạy</h2>
+                <span class="text-red-500 font-semibold text-sm">🔥 Hot Deal</span>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <?php 
