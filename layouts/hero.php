@@ -18,7 +18,7 @@ try {
 
 <!-- Hero Section / Banner Slideshow -->
 <?php if (!empty($banners)): ?>
-<section class="relative h-[500px] overflow-hidden bg-gray-900">
+<section class="relative h-[500px] overflow-hidden bg-gray-900" role="banner">
     <!-- Slideshow Container -->
     <div class="slideshow-container h-full relative">
         <?php foreach ($banners as $index => $banner): ?>
