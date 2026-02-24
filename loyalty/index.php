@@ -37,7 +37,7 @@
     <?php require_once PATH_VIEW . 'layouts/header.php'; ?>
     <div class="relative flex h-auto min-h-screen w-full flex-col">
         <div class="layout-container flex h-full grow flex-col">
-            <main class="flex flex-1 justify-center py-5 px-4 sm:px-6 md:px-8">
+            <main class="flex flex-1 justify-center py-5 px-4 sm:px-6 md:px-8" role="main">
                 <div class="layout-content-container flex flex-col w-full max-w-5xl flex-1">
                     <div class="flex flex-wrap justify-between gap-3 p-4">
                         <p class="text-text-main-light text-4xl font-bold leading-tight tracking-[-0.033em] min-w-72">Điểm thưởng</p>
