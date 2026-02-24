@@ -1,308 +1,265 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html class="light" lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Chill Drink Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Chill Drink - Hương Vị Bùng Tỉnh Ngay Mỗi Ngày</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="<?= BASE_URL ?>assets/css/style.css" rel="stylesheet"/>
     <style>
-        body { font-family: 'Poppins', sans-serif; }
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+        body { 
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
     </style>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#47b4eb",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#111c21",
+                    },
+                    fontFamily: { 
+                        "sans": ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans", "sans-serif"],
+                        "display": ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
 </head>
-<body class="bg-gray-50">
-    <div class="flex">
-        <?php include PATH_VIEW . 'layouts/admin-sidebar.php'; ?>
+<body class="bg-background-light">
+    <?php include PATH_VIEW . 'layouts/header.php'; ?>
+    
+    <?php if (isset($_SESSION['success'])): ?>
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div class="p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between">
+            <span><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></span>
+            <button onclick="this.parentElement.parentElement.remove()" class="text-green-700 hover:text-green-900">✕</button>
+        </div>
+    </div>
+    <?php unset($_SESSION['success']); endif; ?>
+    
+    <?php include PATH_VIEW . 'layouts/hero.php'; ?>
 
-        <!-- Main Content -->
-        <main class="flex-1 lg:ml-64 p-4 sm:p-6 lg:p-8">
-            <!-- Header -->
-            <div class="mb-8">
-                <h1 class="text-3xl font-bold text-slate-900 mb-2">Tổng quan</h1>
-                <p class="text-slate-600">Chào mừng trở lại, Admin!</p>
+    <!-- Featured Categories -->
+    <section class="py-8 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-900">Danh mục sản phẩm</h2>
             </div>
 
-            <?php if (isset($_SESSION['success'])): ?>
-            <div class="mb-6 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between">
-                <span><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES, 'UTF-8') ?></span>
-                <button onclick="this.parentElement.remove()" class="text-green-700 hover:text-green-900">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+            <div class="flex justify-center items-center gap-6 md:gap-12 lg:gap-16 flex-wrap">
+                <?php 
+                $categoryModel = new Category();
+                $categories = $categoryModel->getAll();
+                
+                // Icon material symbols và màu cho từng danh mục
+                $categoryData = [
+                    'Trà' => ['icon' => 'eco', 'gradient' => 'from-green-400 to-emerald-500', 'color' => 'text-white'],
+                    'Trà sữa' => ['icon' => 'local_cafe', 'gradient' => 'from-amber-400 to-orange-500', 'color' => 'text-white'],
+                    'Cà phê' => ['icon' => 'coffee', 'gradient' => 'from-amber-700 to-yellow-800', 'color' => 'text-white'],
+                    'Sinh tố' => ['icon' => 'blender', 'gradient' => 'from-pink-400 to-rose-500', 'color' => 'text-white'],
+                    'Nước ép' => ['icon' => 'water_drop', 'gradient' => 'from-cyan-400 to-blue-500', 'color' => 'text-white'],
+                ];
+                
+                foreach ($categories as $category): 
+                    // Tìm data phù hợp
+                    $data = ['icon' => 'local_cafe', 'gradient' => 'from-gray-400 to-gray-500', 'color' => 'text-white'];
+                    foreach ($categoryData as $catName => $catData) {
+                        if (stripos($category['name'], $catName) !== false) {
+                            $data = $catData;
+                            break;
+                        }
+                    }
+                ?>
+                <a href="<?= BASE_URL ?>?action=products-by-category&category_id=<?= $category['id'] ?>" 
+                   class="flex flex-col items-center group transition-all duration-300 hover:scale-105">
+                    <div class="w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br <?= $data['gradient'] ?> rounded-full flex items-center justify-center mb-2 shadow-md group-hover:shadow-lg transition-all transform group-hover:-translate-y-1 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-white/20 group-hover:bg-white/30 transition-all"></div>
+                        <span class="material-symbols-outlined <?= $data['color'] ?> text-3xl md:text-4xl relative z-10 drop-shadow-lg">
+                            <?= $data['icon'] ?>
+                        </span>
+                    </div>
+                    <h3 class="text-sm md:text-base font-semibold text-slate-900 group-hover:text-primary transition-colors">
+                        <?= htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8') ?>
+                    </h3>
+                </a>
+                <?php endforeach; ?>
             </div>
-            <?php unset($_SESSION['success']); endif; ?>
+        </div>
+    </section>
 
-            <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <!-- Total Orders -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-slate-500 text-sm mb-2">Tổng đơn hàng</p>
-                    <h3 class="text-3xl font-bold text-slate-900 mb-2"><?= number_format($totalOrders) ?></h3>
-                    <p class="text-green-600 text-sm font-semibold">+12.5%</p>
-                </div>
+    <!-- Featured Products -->
+    <section class="py-8 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-5">Sản phẩm nổi bật</h2>
 
-                <!-- Total Revenue -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-slate-500 text-sm mb-2">Tổng doanh thu</p>
-                    <h3 class="text-3xl font-bold text-slate-900 mb-2"><?= number_format($totalRevenue, 0, ',', '.') ?>đ</h3>
-                    <p class="text-green-600 text-sm font-semibold">+8.2%</p>
-                </div>
-
-                <!-- Total Users -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-slate-500 text-sm mb-2">Tổng người dùng</p>
-                    <h3 class="text-3xl font-bold text-slate-900 mb-2"><?= number_format($totalUsers) ?></h3>
-                    <p class="text-green-600 text-sm font-semibold">+5.1%</p>
-                </div>
-
-                <!-- Best Seller -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <p class="text-slate-500 text-sm mb-2">Sản phẩm bán chạy</p>
-                    <h3 class="text-xl font-bold text-slate-900 mb-2">Trà sữa tr...</h3>
-                    <p class="text-green-600 text-sm font-semibold">+2.0%</p>
-                </div>
-            </div>
-
-            <!-- Charts Row -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <!-- Revenue Chart -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-bold text-slate-900 mb-1">Doanh thu theo tháng</h3>
-                        <p class="text-2xl font-bold text-slate-900">95.000.000đ</p>
-                        <p class="text-green-600 text-sm font-semibold">Tháng này +8.2%</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <?php 
+                $productModel = new Product();
+                $products = array_slice($productModel->getAll(), 0, 4);
+                foreach ($products as $product): 
+                    $sizes = $productModel->getSizes($product['id']);
+                    $minPrice = !empty($sizes) ? min(array_column($sizes, 'price')) : 0;
+                ?>
+                <a href="<?= BASE_URL ?>?action=product-detail&id=<?= $product['id'] ?>" 
+                   class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 block">
+                    <div class="relative h-56 bg-gray-100 overflow-hidden">
+                        <img src="<?= BASE_ASSETS_UPLOADS . htmlspecialchars($product['image'], ENT_QUOTES, 'UTF-8') ?>" 
+                             alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
+                             class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                             onerror="this.src='https://via.placeholder.com/300x300?text=No+Image'"/>
                     </div>
-                    <div class="relative h-64">
-                        <canvas id="revenueChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Products Chart -->
-                <div class="bg-white rounded-2xl p-6 shadow-sm">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-bold text-slate-900 mb-1">Sản phẩm bán chạy</h3>
-                        <p class="text-2xl font-bold text-slate-900">850 sản phẩm</p>
-                        <p class="text-green-600 text-sm font-semibold">Tháng này +15.0%</p>
-                    </div>
-                    <div class="relative h-64">
-                        <canvas id="productsChart"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recent Orders -->
-            <div class="bg-white rounded-2xl shadow-sm">
-                <div class="p-6 border-b border-gray-200">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-bold text-slate-900">Đơn hàng gần đây</h3>
-                        <div class="relative">
-                            <input type="text" placeholder="Tìm kiếm đơn hàng..." 
-                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"/>
-                            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">search</span>
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg text-slate-900 mb-2"><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></h3>
+                        <p class="text-primary font-bold text-xl mb-4"><?= number_format($minPrice, 0, ',', '.') ?>đ</p>
+                        <div class="w-full text-center py-3 bg-cyan-100 text-cyan-600 rounded-lg font-semibold hover:bg-cyan-200 transition-colors">
+                            Thêm vào giỏ
                         </div>
                     </div>
-                </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th class="text-left py-4 px-6 text-sm font-semibold text-slate-700">MÃ ĐƠN HÀNG</th>
-                                <th class="text-left py-4 px-6 text-sm font-semibold text-slate-700">KHÁCH HÀNG</th>
-                                <th class="text-left py-4 px-6 text-sm font-semibold text-slate-700">NGÀY ĐẶT</th>
-                                <th class="text-left py-4 px-6 text-sm font-semibold text-slate-700">TỔNG TIỀN</th>
-                                <th class="text-left py-4 px-6 text-sm font-semibold text-slate-700">TRẠNG THÁI</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            <?php foreach ($recentOrders as $order): ?>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="py-4 px-6">
-                                    <span class="font-semibold text-slate-900">#<?= str_pad($order['id'], 4, '0', STR_PAD_LEFT) ?></span>
-                                </td>
-                                <td class="py-4 px-6">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                            <span class="text-blue-600 text-sm font-semibold"><?= strtoupper(substr($order['user_name'], 0, 1)) ?></span>
-                                        </div>
-                                        <span class="text-slate-900"><?= htmlspecialchars($order['user_name'], ENT_QUOTES, 'UTF-8') ?></span>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-6 text-slate-600">
-                                    <?= date('d/m/Y H:i', strtotime($order['created_at'])) ?>
-                                </td>
-                                <td class="py-4 px-6">
-                                    <span class="font-semibold text-slate-900"><?= number_format($order['total'], 0, ',', '.') ?>đ</span>
-                                </td>
-                                <td class="py-4 px-6">
-                                    <?php
-                                    $statusColors = [
-                                        'pending' => 'bg-yellow-100 text-yellow-700',
-                                        'processing' => 'bg-blue-100 text-blue-700',
-                                        'preparing' => 'bg-orange-100 text-orange-700',
-                                        'shipped' => 'bg-purple-100 text-purple-700',
-                                        'delivering' => 'bg-cyan-100 text-cyan-700',
-                                        'completed' => 'bg-green-100 text-green-700',
-                                        'cancelled' => 'bg-red-100 text-red-700'
-                                    ];
-                                    $statusLabels = [
-                                        'pending' => 'Chờ xử lý',
-                                        'processing' => 'Đang xử lý',
-                                        'preparing' => 'Đang thực hiện',
-                                        'shipped' => 'Đã giao ĐVVC',
-                                        'delivering' => 'Đang giao',
-                                        'completed' => 'Hoàn thành',
-                                        'cancelled' => 'Đã hủy'
-                                    ];
-                                    $colorClass = $statusColors[$order['status']] ?? 'bg-gray-100 text-gray-700';
-                                    $label = $statusLabels[$order['status']] ?? $order['status'];
-                                    ?>
-                                    <span class="px-3 py-1 rounded-full text-xs font-semibold <?= $colorClass ?>">
-                                        <?= $label ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+    <!-- Sale Products -->
+    <section class="py-8 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-5">Sản phẩm bán chạy</h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <?php 
+                $saleProducts = array_slice($productModel->getAll(), 4, 4);
+                $saleDiscounts = [20, 15, 25, 18]; // Giảm giá mẫu
+                foreach ($saleProducts as $index => $product): 
+                    $sizes = $productModel->getSizes($product['id']);
+                    $minPrice = !empty($sizes) ? min(array_column($sizes, 'price')) : 0;
+                    $discount = $saleDiscounts[$index] ?? 20;
+                    $originalPrice = $minPrice * (100 / (100 - $discount));
+                    $salePrice = $minPrice;
+                ?>
+                <a href="<?= BASE_URL ?>?action=product-detail&id=<?= $product['id'] ?>" 
+                   class="bg-gray-50 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 block">
+                    <div class="relative h-56 bg-gray-200 overflow-hidden">
+                        <img src="<?= BASE_ASSETS_UPLOADS . htmlspecialchars($product['image'], ENT_QUOTES, 'UTF-8') ?>" 
+                             alt="<?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?>"
+                             class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                             onerror="this.src='https://via.placeholder.com/300x300?text=No+Image'"/>
+                        <div class="absolute top-3 left-3 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+                            SALE
+                        </div>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg text-slate-900 mb-2"><?= htmlspecialchars($product['name'], ENT_QUOTES, 'UTF-8') ?></h3>
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-gray-400 line-through text-sm"><?= number_format($originalPrice, 0, ',', '.') ?>đ</span>
+                            <span class="text-primary font-bold text-xl"><?= number_format($salePrice, 0, ',', '.') ?>đ</span>
+                        </div>
+                        <div class="w-full text-center py-3 bg-cyan-100 text-cyan-600 rounded-lg font-semibold hover:bg-cyan-200 transition-colors">
+                            Thêm vào giỏ
+                        </div>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="py-8 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-4xl mx-auto">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="flex-1">
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-1">Nhận ưu đãi đặc quyền!</h2>
+                        <p class="text-slate-600 text-sm">Đăng ký để không bỏ lỡ các khuyến mãi hấp dẫn.</p>
+                    </div>
+                    <div class="flex-1 w-full">
+                        <form class="flex gap-3" onsubmit="return handleNewsletterSubmit(event)">
+                            <input 
+                                type="email" 
+                                placeholder="Nhập email của bạn" 
+                                required
+                                class="flex-1 h-12 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                            />
+                            <button 
+                                type="submit"
+                                class="px-8 py-3 bg-cyan-400 text-white rounded-lg font-semibold hover:bg-cyan-500 transition-colors whitespace-nowrap">
+                                Đăng ký
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </section>
 
     <script>
-        // Wait for DOM to be fully loaded
-        document.addEventListener('DOMContentLoaded', function() {
-            // Revenue Chart
-            const revenueCanvas = document.getElementById('revenueChart');
-            if (revenueCanvas) {
-                const revenueCtx = revenueCanvas.getContext('2d');
-                new Chart(revenueCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
-                        datasets: [{
-                            label: 'Doanh thu',
-                            data: [65, 75, 70, 80, 75, 85, 80, 90, 85, 95, 90, 95],
-                            borderColor: 'rgb(96, 165, 250)',
-                            backgroundColor: 'rgba(96, 165, 250, 0.1)',
-                            tension: 0.4,
-                            fill: true,
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            pointHoverRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                mode: 'index',
-                                intersect: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: true,
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    display: false
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false,
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 11
-                                    }
-                                }
-                            }
-                        },
-                        interaction: {
-                            mode: 'nearest',
-                            axis: 'x',
-                            intersect: false
-                        }
-                    }
-                });
-            }
-
-            // Products Chart
-            const productsCanvas = document.getElementById('productsChart');
-            if (productsCanvas) {
-                const productsCtx = productsCanvas.getContext('2d');
-                new Chart(productsCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: ['Trà sữa', 'Cà phê', 'Nước ép', 'Trà trái cây', 'Sinh tố'],
-                        datasets: [{
-                            label: 'Số lượng bán',
-                            data: [180, 220, 190, 160, 280],
-                            backgroundColor: [
-                                'rgba(191, 219, 254, 0.8)',
-                                'rgba(191, 219, 254, 0.8)',
-                                'rgba(191, 219, 254, 0.8)',
-                                'rgba(191, 219, 254, 0.8)',
-                                'rgba(59, 130, 246, 0.8)'
-                            ],
-                            borderRadius: 8,
-                            borderSkipped: false,
-                            barThickness: 40
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                padding: 12,
-                                cornerRadius: 8
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    display: true,
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    display: false
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false,
-                                    drawBorder: false
-                                },
-                                ticks: {
-                                    font: {
-                                        size: 11
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        });
+    function handleNewsletterSubmit(event) {
+        event.preventDefault();
+        const email = event.target.querySelector('input[type="email"]').value;
+        alert('Cảm ơn bạn đã đăng ký! Chúng tôi sẽ gửi ưu đãi đến email: ' + email);
+        event.target.reset();
+        return false;
+    }
     </script>
+
+    <!-- Why Choose Us -->
+    <section class="py-8 bg-gradient-to-br from-primary/5 to-primary/10">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-8">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-1">Tại Sao Chọn Chill Drink?</h2>
+                <p class="text-slate-600 text-sm">Những lý do khiến khách hàng yêu thích chúng tôi</p>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div class="text-center">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-2xl">verified</span>
+                    </div>
+                    <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Chất Lượng</h3>
+                    <p class="text-slate-600 text-xs hidden md:block">Nguyên liệu tươi ngon</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-2xl">local_shipping</span>
+                    </div>
+                    <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Giao Nhanh</h3>
+                    <p class="text-slate-600 text-xs hidden md:block">Giao trong 30 phút</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-2xl">loyalty</span>
+                    </div>
+                    <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Tích Điểm</h3>
+                    <p class="text-slate-600 text-xs hidden md:block">Đổi quà hấp dẫn</p>
+                </div>
+
+                <div class="text-center">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-2xl">support_agent</span>
+                    </div>
+                    <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Hỗ Trợ 24/7</h3>
+                    <p class="text-slate-600 text-xs hidden md:block">Luôn sẵn sàng</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <?php require_once PATH_VIEW . 'layouts/footer.php'; ?>
+
+    <script src="<?= BASE_URL ?>assets/js/main.js"></script>
 </body>
 </html>
