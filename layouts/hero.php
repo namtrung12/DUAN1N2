@@ -49,9 +49,9 @@ try {
         
         <!-- Navigation Dots -->
         <?php if (count($banners) > 1): ?>
-        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20" role="navigation" aria-label="Banner navigation">
             <?php foreach ($banners as $index => $banner): ?>
-            <button onclick="currentSlide(<?= $index ?>)" class="dot w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-all <?= $index === 0 ? 'bg-white w-8' : '' ?>"></button>
+            <button onclick="currentSlide(<?= $index ?>)" class="dot w-3 h-3 rounded-full bg-white/50 hover:bg-white transition-all <?= $index === 0 ? 'bg-white w-8' : '' ?>" aria-label="Chuyen den banner <?= $index + 1 ?>"></button>
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
