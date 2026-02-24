@@ -223,31 +223,31 @@
             </div>
 
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                <div class="text-center">
-                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <div class="text-center group cursor-default">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:shadow-md transition-shadow">
                         <span class="material-symbols-outlined text-primary text-2xl">verified</span>
                     </div>
                     <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Chất Lượng</h3>
                     <p class="text-slate-600 text-xs hidden md:block">Nguyên liệu tươi ngon</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <div class="text-center group cursor-default">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:shadow-md transition-shadow">
                         <span class="material-symbols-outlined text-primary text-2xl">local_shipping</span>
                     </div>
                     <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Giao Nhanh</h3>
                     <p class="text-slate-600 text-xs hidden md:block">Giao trong 30 phút</p>
                 </div>
 
-                <div class="text-center">
-                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <div class="text-center group cursor-default">
+                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:shadow-md transition-shadow">
                         <span class="material-symbols-outlined text-primary text-2xl">loyalty</span>
                     </div>
                     <h3 class="font-bold text-sm md:text-base text-slate-900 mb-1">Tích Điểm</h3>
                     <p class="text-slate-600 text-xs hidden md:block">Đổi quà hấp dẫn</p>
                 </div>
 
-                <div class="text-center">
+                <div class="text-center group cursor-default">
                     <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
                         <span class="material-symbols-outlined text-primary text-2xl">support_agent</span>
                     </div>
