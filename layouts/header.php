@@ -4,7 +4,7 @@ $siteSettings = get_site_settings();
 $siteName = $siteSettings['site_name'] ?? 'Chill Drink';
 $siteLogo = $siteSettings['site_logo'] ?? '';
 ?>
-<header class="bg-white shadow-sm sticky top-0 z-50">
+<header class="bg-white shadow-sm sticky top-0 z-50" role="banner">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
             <!-- Logo -->
