@@ -48,6 +48,7 @@
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-8">
                 <h2 class="text-xl md:text-2xl font-bold text-slate-900">Danh mục sản phẩm</h2>
+                <p class="text-slate-600 text-sm mt-2">Khám phá các loại đồ uống yêu thích</p>
             </div>
 
             <div class="flex justify-center items-center gap-6 md:gap-12 lg:gap-16 flex-wrap">
