@@ -49,7 +49,7 @@
                     $hasRedeemed = $couponModel->hasUserRedeemed($_SESSION['user']['id'], $coupon['id']);
                     $canAfford = $loyaltyPoints['total_points'] >= $coupon['point_cost'];
                 ?>
-                <div class="bg-white rounded-2xl p-6 shadow-sm border-2 <?= $hasRedeemed ? 'border-gray-200 opacity-60' : 'border-transparent hover:border-blue-200' ?> transition-all">
+                <div class="bg-white rounded-2xl p-6 shadow-sm border-2 <?= $hasRedeemed ? 'border-gray-200 opacity-60' : 'border-transparent hover:border-blue-200 hover:shadow-md' ?> transition-all duration-300">
                     <div class="flex items-start justify-between mb-4">
                         <div class="flex-1">
                             <h3 class="text-xl font-bold text-slate-900 mb-1"><?= htmlspecialchars($coupon['code'], ENT_QUOTES, 'UTF-8') ?></h3>
