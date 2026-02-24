@@ -39,9 +39,9 @@ try {
                     <p class="hero-subtitle text-lg md:text-xl text-white/90 mb-8 drop-shadow">
                         Khám phá thế giới đồ uống đa dạng, từ cà phê đậm đà đến trà sữa ngọt ngào.
                     </p>
-                    <a href="<?= BASE_URL ?>?action=products" class="hero-button inline-flex items-center gap-2 px-8 py-4 bg-white text-green-600 rounded-full font-bold text-lg hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105">
+                    <a href="<?= BASE_URL ?>?action=products" class="hero-button inline-flex items-center gap-2 px-8 py-4 bg-white text-green-600 rounded-full font-bold text-lg hover:bg-gray-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1 hover:scale-105" aria-label="Xem san pham">
                         <span>Đặt hàng ngay</span>
-                        <span class="material-symbols-outlined">arrow_forward</span>
+                        <span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
                     </a>
                 </div>
             </div>
