@@ -57,7 +57,7 @@
             <?php else: ?>
             <?php foreach ($notifications as $notif): ?>
             <a href="<?= BASE_URL ?>?action=notification-read&id=<?= $notif['id'] ?><?= $notif['order_id'] ? '&redirect=order-detail&order_id=' . $notif['order_id'] : '' ?>" 
-               class="block p-4 hover:bg-gray-50 border-b border-gray-100 last:border-0 <?= !$notif['is_read'] ? 'bg-blue-50' : '' ?>">
+               class="block p-4 hover:bg-gray-50 border-b border-gray-100 last:border-0 <?= !$notif['is_read'] ? 'bg-blue-50' : '' ?> transition-colors duration-200">
                 <div class="flex gap-4">
                     <div class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center
                         <?php if ($notif['type'] === 'order_delivering'): ?>
