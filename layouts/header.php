@@ -20,7 +20,7 @@ $siteLogo = $siteSettings['site_logo'] ?? '';
             </a>
 
             <!-- Navigation Menu -->
-            <nav class="hidden lg:flex items-center gap-8">
+            <nav class="hidden lg:flex items-center gap-8" role="navigation" aria-label="Main navigation">
                 <a href="<?= BASE_URL ?>" class="text-slate-700 hover:text-primary font-medium transition-colors">Trang Chủ</a>
                 <a href="<?= BASE_URL ?>?action=products" class="text-slate-700 hover:text-primary font-medium transition-colors">Sản Phẩm</a>
                 <a href="<?= BASE_URL ?>?action=orders" class="text-slate-700 hover:text-primary font-medium transition-colors">Đơn Hàng</a>
