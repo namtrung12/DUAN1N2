@@ -93,9 +93,12 @@
     </section>
 
     <!-- Featured Products -->
-    <section class="py-8 bg-gray-50">
+    <section class="py-8 bg-gray-50" id="featured-products">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-xl md:text-2xl font-bold text-slate-900 mb-5">Sản phẩm nổi bật</h2>
+            <div class="flex justify-between items-center mb-5">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-900">Sản phẩm nổi bật</h2>
+                <a href="<?= BASE_URL ?>?action=products" class="text-primary hover:underline text-sm font-medium">Xem tất cả →</a>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <?php 
