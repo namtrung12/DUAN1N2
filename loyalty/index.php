@@ -74,7 +74,7 @@
                                         </p>
                                     </div>
                                 </div>
-                                <a href="<?= BASE_URL ?>?action=loyalty-rewards" class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-text-main-light gap-2 text-sm font-semibold leading-normal w-fit">
+                                <a href="<?= BASE_URL ?>?action=loyalty-rewards" class="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-text-main-light gap-2 text-sm font-semibold leading-normal w-fit hover:bg-primary/90 transition-all">
                                     <span class="material-symbols-outlined text-lg">redeem</span>
                                     <span class="truncate">Đổi quà</span>
                                 </a>
